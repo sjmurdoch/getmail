@@ -9,6 +9,9 @@ __all__ = [
     'decode_crappy_text',
     'format_header',
     'check_ssl_key_and_cert',
+    'check_ca_certs',
+    'check_ssl_version',
+    'check_ssl_fingerprint',
     'deliver_maildir',
     'eval_bool',
     'expand_user_vars',
@@ -509,6 +512,63 @@ def check_ssl_key_and_cert(conf):
         )
     return (keyfile, certfile)
 
+#######################################
+def check_ca_certs(conf):
+    ca_certs = conf['ca_certs']
+    if ca_certs is not None:
+        ca_certs = expand_user_vars(ca_certs)
+        try:
+            import ssl
+        except ImportError:
+            raise getmailConfigurationError(
+                'specifying ca_certs not supported by this installation of Python'
+            )
+    if ca_certs and not os.path.isfile(ca_certs):
+        raise getmailConfigurationError(
+            'optional ca_certs must be path to a valid file'
+        )
+    return ca_certs
+
+#######################################
+def check_ssl_version(conf):
+    ssl_version = conf['ssl_version']
+    if ssl_version is None:
+        return None
+    try:
+        import ssl
+    except ImportError:
+        raise getmailConfigurationError(
+            'specifying ssl_version not supported by this installation of Python'
+        )
+    ssl_version = ssl_version.lower()
+    if ssl_version == 'sslv2':
+        return ssl.PROTOCOL_SSLv2
+    elif ssl_version == 'sslv23':
+        return ssl.PROTOCOL_SSLv23
+    elif ssl_version == 'sslv3':
+        return ssl.PROTOCOL_SSLv3
+    elif ssl_version == 'tlsv1':
+        return ssl.PROTOCOL_TLSv1
+
+#######################################
+def check_ssl_fingerprint(conf):
+    ssl_fingerprint = conf['ssl_fingerprint']
+    if ssl_fingerprint is None:
+        return None
+    try:
+        import ssl
+        import hashlib
+    except ImportError:
+        raise getmailConfigurationError(
+            'specifying ssl_fingerprint not supported by this installation of Python'
+        )
+
+    ssl_fingerprint = ssl_fingerprint.lower().replace(':','')
+    if len(ssl_fingerprint) != 64:
+        raise getmailConfigurationError(
+            'ssl_fingerprint must be the SHA256 certificate hash in hex (with or without colons)'
+        )
+    return ssl_fingerprint
 
 #######################################
 keychain_password = None
