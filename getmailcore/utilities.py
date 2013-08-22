@@ -11,7 +11,7 @@ __all__ = [
     'check_ssl_key_and_cert',
     'check_ca_certs',
     'check_ssl_version',
-    'check_ssl_fingerprint',
+    'check_ssl_fingerprints',
     'deliver_maildir',
     'eval_bool',
     'expand_user_vars',
@@ -551,24 +551,27 @@ def check_ssl_version(conf):
         return ssl.PROTOCOL_TLSv1
 
 #######################################
-def check_ssl_fingerprint(conf):
-    ssl_fingerprint = conf['ssl_fingerprint']
-    if ssl_fingerprint is None:
-        return None
+def check_ssl_fingerprints(conf):
+    ssl_fingerprints = conf['ssl_fingerprints']
+    if ssl_fingerprints is ():
+        return ()
     try:
         import ssl
         import hashlib
     except ImportError:
         raise getmailConfigurationError(
-            'specifying ssl_fingerprint not supported by this installation of Python'
+            'specifying ssl_fingerprints not supported by this installation of Python'
         )
 
-    ssl_fingerprint = ssl_fingerprint.lower().replace(':','')
-    if len(ssl_fingerprint) != 64:
-        raise getmailConfigurationError(
-            'ssl_fingerprint must be the SHA256 certificate hash in hex (with or without colons)'
-        )
-    return ssl_fingerprint
+    normalized_fprs = []
+    for fpr in ssl_fingerprints:
+        fpr = fpr.lower().replace(':','')
+        if len(fpr) != 64:
+            raise getmailConfigurationError(
+                'ssl_fingerprints must each be the SHA256 certificate hash in hex (with or without colons)'
+            )
+        normalized_fprs.append(fpr)
+    return normalized_fprs
 
 #######################################
 keychain_password = None

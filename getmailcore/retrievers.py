@@ -403,7 +403,7 @@ class SimpleIMAPSSLRetriever(IMAPRetrieverBase, IMAPSSLinitMixIn):
         ConfFile(name='keyfile', required=False, default=None),
         ConfFile(name='certfile', required=False, default=None),
         ConfFile(name='ca_certs', required=False, default=None),
-        ConfString(name='ssl_fingerprint', required=False, default=None),
+        ConfTupleOfStrings(name='ssl_fingerprints', required=False, default=()),
         ConfString(name='ssl_version', required=False, default=None),
         # imaplib.IMAP4.login_cram_md5() requires the (unimplemented)
         # .authenticate(), so we can't do this yet (?).

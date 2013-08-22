@@ -291,7 +291,7 @@ class IMAPSSLinitMixIn(object):
         (keyfile, certfile) = check_ssl_key_and_cert(self.conf)
         ca_certs = check_ca_certs(self.conf)
         ssl_version = check_ssl_version(self.conf)
-        ssl_fingerprint = check_ssl_fingerprint(self.conf)
+        ssl_fingerprints = check_ssl_fingerprints(self.conf)
         try:
             if ca_certs or ssl_version:
                 keyfile_message = ''
@@ -332,12 +332,22 @@ class IMAPSSLinitMixIn(object):
                 self.conn = imaplib.IMAP4_SSL(self.conf['server'],
                                               self.conf['port'])
             self.setup_received(self.conn.sock)
-            if ssl_fingerprint:
+            if ssl_fingerprints:
                 import hashlib
-                actual_hash = hashlib.sha256(self.conn.ssl().getpeercert(True)).hexdigest().lower()
-                if actual_hash != ssl_fingerprint:
+                peercert = self.conn.ssl().getpeercert(True)
+                if not peercert:
                     raise getmailOperationError(
-                        'socket ssl_fingerprint mismatch (got %s)' % actual_hash
+                        'socket ssl_fingerprints mismatch (no cert provided)'
+                    )
+
+                actual_hash = hashlib.sha256(peercert).hexdigest().lower()
+                any_matches = False
+                for expected_hash in ssl_fingerprints:
+                    if expected_hash == actual_hash:
+                        any_matches = True
+                if not any_matches:
+                    raise getmailOperationError(
+                        'socket ssl_fingerprints mismatch (got %s)' % actual_hash
                     )
 
         except imaplib.IMAP4.error, o:
