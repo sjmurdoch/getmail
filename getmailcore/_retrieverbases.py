@@ -332,15 +332,27 @@ class IMAPSSLinitMixIn(object):
                 self.conn = imaplib.IMAP4_SSL(self.conf['server'],
                                               self.conf['port'])
             self.setup_received(self.conn.sock)
-            if ssl_fingerprints:
+            try:
                 import hashlib
+                import ssl
                 peercert = self.conn.ssl().getpeercert(True)
+                ssl_cipher = self.conn.ssl().cipher()
+                if ssl_cipher:
+                    ssl_cipher = '%s:%s:%s' % ssl_cipher
                 if not peercert:
+                    actual_hash = None
+                else:
+                    actual_hash = hashlib.sha256(peercert).hexdigest().lower()
+            except ImportError:
+                actual_hash = None
+                ssl_cipher = None
+
+            if ssl_fingerprints:
+                if not actual_hash:
                     raise getmailOperationError(
                         'socket ssl_fingerprints mismatch (no cert provided)'
                     )
 
-                actual_hash = hashlib.sha256(peercert).hexdigest().lower()
                 any_matches = False
                 for expected_hash in ssl_fingerprints:
                     if expected_hash == actual_hash:
@@ -375,8 +387,17 @@ class IMAPSSLinitMixIn(object):
                 'socket sslerror during connect (%s)' % o
             )
 
-        self.log.trace('IMAP SSL connection %s established' % self.conn
-                       + os.linesep)
+        fingerprint_message = 'IMAP SSL connection %s established' % self.conn
+        if actual_hash:
+            fingerprint_message += ' with fingerprint %s' % actual_hash
+        if ssl_cipher:
+            fingerprint_message += ' using cipher %s' % ssl_cipher
+        fingerprint_message += os.linesep
+
+        if self.app_options['fingerprint']:
+            self.log.info(fingerprint_message)
+        else:
+            self.log.trace(fingerprint_message)
 
 #
 # Base classes
