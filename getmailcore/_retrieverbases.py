@@ -257,9 +257,10 @@ class IMAPinitMixIn(object):
 #######################################
 class IMAP4_SECURED_SSL(imaplib.IMAP4_SSL):
     def __init__(self, host = '', port = imaplib.IMAP4_SSL_PORT, keyfile = None, certfile = None,
-                 ssl_version = None, ca_certs = None):
+                 ssl_version = None, ca_certs = None, ssl_ciphers = None):
        self.ssl_version = ssl_version
        self.ca_certs = ca_certs
+       self.ssl_ciphers = ssl_ciphers
        imaplib.IMAP4_SSL.__init__(self, host, port, keyfile, certfile)
 
     def open(self, host = '', port = imaplib.IMAP4_SSL_PORT):
@@ -273,6 +274,8 @@ class IMAP4_SECURED_SSL(imaplib.IMAP4_SSL):
        if self.ca_certs:
            extra_args['cert_reqs'] = ssl.CERT_REQUIRED
            extra_args['ca_certs'] = self.ca_certs
+       if self.ssl_ciphers:
+           extra_args['ciphers'] = self.ssl_ciphers
 
        self.sslobj = ssl.wrap_socket(self.sock, self.keyfile, self.certfile, **extra_args)
        self.file = self.sslobj.makefile('rb')
@@ -292,8 +295,9 @@ class IMAPSSLinitMixIn(object):
         ca_certs = check_ca_certs(self.conf)
         ssl_version = check_ssl_version(self.conf)
         ssl_fingerprints = check_ssl_fingerprints(self.conf)
+        ssl_ciphers = check_ssl_ciphers(self.conf)
         try:
-            if ca_certs or ssl_version:
+            if ca_certs or ssl_version or ssl_ciphers:
                 keyfile_message = ''
                 ssl_version_message = ''
                 ca_certs_message = ''
@@ -311,7 +315,7 @@ class IMAPSSLinitMixIn(object):
                     + os.linesep
                 )
                 self.conn = IMAP4_SECURED_SSL(
-                    self.conf['server'], self.conf['port'], keyfile, certfile, ssl_version, ca_certs
+                    self.conf['server'], self.conf['port'], keyfile, certfile, ssl_version, ca_certs, ssl_ciphers
                 )
             elif keyfile:
                 self.log.trace(

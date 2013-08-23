@@ -12,6 +12,7 @@ __all__ = [
     'check_ca_certs',
     'check_ssl_version',
     'check_ssl_fingerprints',
+    'check_ssl_ciphers',
     'deliver_maildir',
     'eval_bool',
     'expand_user_vars',
@@ -42,6 +43,7 @@ import pwd
 import grp
 import getpass
 import commands
+import sys
 
 # Optional gnome-keyring integration
 try:
@@ -572,6 +574,20 @@ def check_ssl_fingerprints(conf):
             )
         normalized_fprs.append(fpr)
     return normalized_fprs
+
+#######################################
+def check_ssl_ciphers(conf):
+    ssl_ciphers = conf['ssl_ciphers']
+    if ssl_ciphers:
+        if sys.version_info < (2, 7, 0):
+            raise getmailConfigurationError(
+                'specifying ssl_ciphers not supported by this installation of Python'
+            )
+        if re.search(r'[^a-zA-z0-9, :!\-+@]', ssl_ciphers):
+            raise getmailConfigurationError(
+                'invalid character in ssl_ciphers'
+            )
+    return ssl_ciphers
 
 #######################################
 keychain_password = None
