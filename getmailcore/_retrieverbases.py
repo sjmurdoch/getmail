@@ -53,6 +53,17 @@ try:
 except ImportError:
     pass
 
+# hashlib only present in python2.5, ssl in python2.6; used together
+# in SSL functionality below
+try:
+    import ssl
+except ImportError:
+    ssl = None
+try:
+    import hashlib
+except ImportError:
+    hashlib = None
+
 from getmailcore.compatibility import *
 from getmailcore.exceptions import *
 from getmailcore.constants import *
@@ -259,6 +270,35 @@ class IMAPinitMixIn(object):
                        + os.linesep)
 
 
+#######################################
+class IMAP4_SSL_EXTENDED(imaplib.IMAP4_SSL):
+    # Similar to above, but with extended support for SSL certificate checking,
+    # fingerprints, etc.
+    def __init__(self, host='', port=imaplib.IMAP4_SSL_PORT, keyfile=None, 
+                 certfile=None, ssl_version=None, ca_certs=None, 
+                 ssl_ciphers=None):
+       self.ssl_version = ssl_version
+       self.ca_certs = ca_certs
+       self.ssl_ciphers = ssl_ciphers
+       imaplib.IMAP4_SSL.__init__(self, host, port, keyfile, certfile)
+
+    def open(self, host='', port=imaplib.IMAP4_SSL_PORT):
+       self.host = host
+       self.port = port
+       self.sock = socket.create_connection((host, port))
+       extra_args = {}
+       if self.ssl_version:
+           extra_args['ssl_version'] = self.ssl_version
+       if self.ca_certs:
+           extra_args['cert_reqs'] = ssl.CERT_REQUIRED
+           extra_args['ca_certs'] = self.ca_certs
+       if self.ssl_ciphers:
+           extra_args['ciphers'] = self.ssl_ciphers
+
+       self.sslobj = ssl.wrap_socket(self.sock, self.keyfile, self.certfile, 
+                                     **extra_args)
+       self.file = self.sslobj.makefile('rb')
+
 
 #######################################
 class IMAPSSLinitMixIn(object):
@@ -272,8 +312,39 @@ class IMAPSSLinitMixIn(object):
                 'SSL not supported by this installation of Python'
             )
         (keyfile, certfile) = check_ssl_key_and_cert(self.conf)
+        ca_certs = check_ca_certs(self.conf)
+        ssl_version = check_ssl_version(self.conf)
+        ssl_fingerprints = check_ssl_fingerprints(self.conf)
+        ssl_ciphers = check_ssl_ciphers(self.conf)
+        using_extended_certs_interface = False
         try:
-            if keyfile:
+            if ca_certs or ssl_version or ssl_ciphers:
+                using_extended_certs_interface = True
+                # Python 2.6 or higher required, use above class instead of
+                # vanilla stdlib one
+                msg = ''
+                if keyfile:
+                    msg += 'with keyfile %s, certfile %s' % (keyfile, certfile)
+                if ssl_version:
+                    if msg:
+                        msg += ', '
+                    msg += ('using protocol version %s' 
+                            % self.conf['ssl_version'].upper())
+                if ca_certs:
+                    if msg:
+                        msg += ', '
+                    msg += 'with ca_certs %s' % ca_certs
+
+                self.log.trace(
+                    'establishing IMAP SSL connection to %s:%d %s'
+                    % (self.conf['server'], self.conf['port'], msg)
+                    + os.linesep
+                )
+                self.conn = IMAP4_SSL_EXTENDED(
+                    self.conf['server'], self.conf['port'], keyfile, certfile, 
+                    ssl_version, ca_certs, ssl_ciphers
+                )
+            elif keyfile:
                 self.log.trace(
                     'establishing IMAP SSL connection to %s:%d with keyfile '
                     '%s, certfile %s'
@@ -292,6 +363,36 @@ class IMAPSSLinitMixIn(object):
                 self.conn = imaplib.IMAP4_SSL(self.conf['server'],
                                               self.conf['port'])
             self.setup_received(self.conn.sock)
+            if ssl and hashlib and using_extended_certs_interface:
+                sslobj = self.conn.ssl()
+                peercert = sslobj.getpeercert(True)
+                ssl_cipher = sslobj.cipher()
+                if ssl_cipher:
+                    ssl_cipher = '%s:%s:%s' % ssl_cipher
+                if not peercert:
+                    actual_hash = None
+                else:
+                    actual_hash = hashlib.sha256(peercert).hexdigest().lower()
+            else:
+                actual_hash = None
+                ssl_cipher = None
+
+            if ssl_fingerprints:
+                if not actual_hash:
+                    raise getmailOperationError(
+                        'socket ssl_fingerprints mismatch (no cert provided)'
+                    )
+
+                any_matches = False
+                for expected_hash in ssl_fingerprints:
+                    if expected_hash == actual_hash:
+                        any_matches = True
+                if not any_matches:
+                    raise getmailOperationError(
+                        'socket ssl_fingerprints mismatch (got %s)' 
+                        % actual_hash
+                    )
+
         except imaplib.IMAP4.error, o:
             raise getmailOperationError('IMAP error (%s)' % o)
         except socket.timeout:
@@ -311,14 +412,26 @@ class IMAPSSLinitMixIn(object):
                     % (self.conf['server'], o)
                 )
             else:
-                raise getmailOperationError('socket error during connect (%s)' % o)
+                raise getmailOperationError('socket error during connect (%s)' 
+                                            % o)
         except socket.sslerror, o:
             raise getmailOperationError(
                 'socket sslerror during connect (%s)' % o
             )
 
-        self.log.trace('IMAP SSL connection %s established' % self.conn
-                       + os.linesep)
+        if using_extended_certs_interface:
+            fingerprint_message = ('IMAP SSL connection %s established' 
+                                   % self.conn)
+            if actual_hash:
+                fingerprint_message += ' with fingerprint %s' % actual_hash
+            if ssl_cipher:
+                fingerprint_message += ' using cipher %s' % ssl_cipher
+            fingerprint_message += os.linesep
+
+            if self.app_options['fingerprint']:
+                self.log.info(fingerprint_message)
+            else:
+                self.log.trace(fingerprint_message)
 
 #
 # Base classes

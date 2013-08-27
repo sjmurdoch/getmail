@@ -1,3 +1,8 @@
+Version 4.44.0
+25 August 2013
+    -add extended SSL options for IMAP retrievers, allowing certificate 
+    verification and other features.  Thanks: Steven Murdoch.
+
 Version 4.43.0
 25 August 2013
     -add IMAP IDLE support.  Thanks: Jon Gjengset.
