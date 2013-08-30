@@ -832,7 +832,7 @@ mailboxes = ALL
         you can run 
         <pre class="example">
 openssl s_client -showcerts -connect HOST:PORT < /dev/null 2>/dev/null \
-  | grep '^*i:' | tail -n 1        
+  | grep '^[[:space:]]*i:' | tail -n 1
 </pre>
         If the server's certificate cannot be validated based upon the supplied
         trusted root certificates, getmail will abort the connection.
