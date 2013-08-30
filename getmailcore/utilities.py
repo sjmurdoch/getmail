@@ -548,7 +548,7 @@ def check_ssl_version(conf):
         return None
     if ssl is None:
         raise getmailConfigurationError(
-            'specifying ca_certs not supported by this installation of '
+            'specifying ssl_version not supported by this installation of '
             'Python; requires Python 2.6'
         )
     ssl_version = ssl_version.lower()
