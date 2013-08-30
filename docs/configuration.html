@@ -865,10 +865,8 @@ openssl s_client -showcerts -connect HOST:PORT < /dev/null 2>/dev/null \
         changes.  Supply a list of one or more SHA256 certificate fingerprints, 
         and getmail will confirm whether the server's certificate fingerprint is
         in the list of allowed fingerprints; if it is not, getmail will abort 
-        the connection.  If using one of the advanced SSL options, getmail will
-        log the fingerprint of the server's certificate if you supply the 
-        <span class="file">--fingerprint</span>
-        commandline option.
+        the connection.  Getmail will log the fingerprint of the server's certificate
+        if you supply the <span class="file">--fingerprint</span> commandline option.
         Note: this option is only available with Python 2.6 or higher.
     </li>
 </ul>
