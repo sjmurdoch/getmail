@@ -364,7 +364,9 @@ class IMAPSSLinitMixIn(object):
                                               self.conf['port'])
             self.setup_received(self.conn.sock)
             if ssl and hashlib:
+                print self.conn, dir(self.conn)
                 sslobj = self.conn.ssl()
+                print sslobj, dir(sslobj)
                 peercert = sslobj.getpeercert(True)
                 ssl_cipher = sslobj.cipher()
                 if ssl_cipher:
