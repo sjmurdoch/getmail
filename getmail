@@ -416,6 +416,15 @@ def go(configs, idle):
                 # what we want.
                 try:
                     idling = retriever.go_idle(idle)
+                    if retriever.mailbox_selected is not False:
+                        # Close current mailbox so deleted mail is expunged.
+                        # Except one user reports that an explicit expunge is needed
+                        # with his server, or else the mail is never removed from the
+                        # mailbox.
+                        retriever.conn.expunge()
+                        retriever.conn.close()
+                        retriever.mailbox_selected = False
+
                     configs.append(configs[0])
                     continue
                 except KeyboardInterrupt, o:
