@@ -422,6 +422,7 @@ def go(configs, idle):
                         # mailbox.
                         retriever.conn.expunge()
                         retriever.conn.close()
+                        retriever.write_oldmailfile(retriever.mailbox_selected)
                         retriever.mailbox_selected = False
                     idling = retriever.go_idle(idle)
                     configs.append(configs[0])
