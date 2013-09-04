@@ -1282,9 +1282,8 @@ class IMAPRetrieverBase(RetrieverSkeleton):
                     del self.oldmail[msgid]
             """
 
-            if 'IDLE' in self.conn.capabilities:
-                self.supports_idle = True
-                imaplib.Commands['IDLE'] = ('AUTH', 'SELECTED')
+            self.supports_idle = True
+            imaplib.Commands['IDLE'] = ('AUTH', 'SELECTED')
 
             if self.mailboxes == ('ALL', ):
                 # Special value meaning all mailboxes in account
