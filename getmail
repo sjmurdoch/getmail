@@ -415,7 +415,6 @@ def go(configs, idle):
                 # False, which will make the main go() loop reconnect, which is
                 # what we want.
                 try:
-                    idling = retriever.go_idle(idle)
                     if retriever.mailbox_selected is not False:
                         # Close current mailbox so deleted mail is expunged.
                         # Except one user reports that an explicit expunge is needed
@@ -424,7 +423,7 @@ def go(configs, idle):
                         retriever.conn.expunge()
                         retriever.conn.close()
                         retriever.mailbox_selected = False
-
+                    idling = retriever.go_idle(idle)
                     configs.append(configs[0])
                     continue
                 except KeyboardInterrupt, o:
