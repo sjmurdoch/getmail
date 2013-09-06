@@ -417,6 +417,15 @@ def go(configs, idle):
                 # False, which will make the main go() loop reconnect, which is
                 # what we want.
                 try:
+                    if retriever.mailbox_selected is not False:
+                        # Close current mailbox so deleted mail is expunged.
+                        # Except one user reports that an explicit expunge is needed
+                        # with his server, or else the mail is never removed from the
+                        # mailbox.
+                        retriever.conn.expunge()
+                        retriever.conn.close()
+                        retriever.write_oldmailfile(retriever.mailbox_selected)
+                        retriever.mailbox_selected = False
                     idling = retriever.go_idle(idle)
                     configs.append(configs[0])
                     continue
