@@ -395,7 +395,7 @@ def go(configs, idle):
         log.debug('retriever %s finished\n' % retriever)
         try:
             if idle and not retriever.supports_idle:
-                log.info('--idle given, but chosen retriever does not support'
+                log.info('--idle given, but chosen retriever does not support '
                         'IDLE\n')
                 idle = False
 
