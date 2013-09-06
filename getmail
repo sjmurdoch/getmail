@@ -417,13 +417,13 @@ def go(configs, idle):
                 # False, which will make the main go() loop reconnect, which is
                 # what we want.
                 try:
+                    idling = retriever.go_idle(idle)
+                    # Returned from idle
+                    configs.append(configs[0])
                     # First expunge deleted mail and close the mailbox to 
                     # prevent the same message being pulled again in some 
                     # configurations.
                     retriever.quit()
-                    idling = retriever.go_idle(idle)
-                    # Returned from idle
-                    configs.append(configs[0])
                     continue
                 except KeyboardInterrupt, o:
                     # Because configs isn't appended to, this just means we'll
