@@ -1393,6 +1393,17 @@ class IMAPRetrieverBase(RetrieverSkeleton):
                                    + os.linesep)
                     del self.oldmail[msgid]
             """
+            # Some IMAP servers change the available capabilities after 
+            # authentication, i.e. they present a limited set before login.
+            # The Python stlib IMAP4 class doesn't take this into account
+            # and just checks the capabilities immediately after connecting.
+            # Force a re-check now that we've authenticated.
+            (typ, dat) = self.conn.capability()
+            if dat == [None]:
+                # No response, don't update the stored capabilities
+                self.log.warn('no post-login CAPABILITY response from server\n')
+            else:
+                self.conn.capabilities = tuple(dat[-1].upper().split())
 
             if 'IDLE' in self.conn.capabilities:
                 self.supports_idle = True

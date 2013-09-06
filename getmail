@@ -418,7 +418,12 @@ def go(configs, idle):
                 # what we want.
                 try:
                     idling = retriever.go_idle(idle)
+                    # Returned from idle
                     configs.append(configs[0])
+                    # First expunge deleted mail and close the mailbox to 
+                    # prevent the same message being pulled again in some 
+                    # configurations.
+                    retriever.quit()
                     continue
                 except KeyboardInterrupt, o:
                     # Because configs isn't appended to, this just means we'll
