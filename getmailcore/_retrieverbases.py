@@ -1427,7 +1427,7 @@ class IMAPRetrieverBase(RetrieverSkeleton):
             pass
         self.conn = None
 
-    def go_idle(self, folder, timeout=29*60):
+    def go_idle(self, folder, timeout=5*60):
         """Initiates IMAP's IDLE mode if the server supports it
 
         Waits until state of current mailbox changes, and then returns. Returns
